@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N8N Workflows — Automata Archive</title>
+<meta name="description" content="n8n automation workflows from the Automata Archive.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============================================================
+     NAVIGATION — identical block on every page; script.js marks
+     whichever link matches the current page automatically.
+     ============================================================ -->
+<nav class="nav">
+  <div class="nav__wrap">
+    <a href="automation.html#top" class="nav__brand">AUTOMATA <span>ARCHIVE</span></a>
+    <ul class="nav__links">
+      <li><a href="n8n.html">n8n</a></li>
+      <li><a href="zapier.html">zapier</a></li>
+      <li><a href="make.html">make</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="page-intro">
+  <div class="wrap">
+    <a href="automation.html" class="btn btn--ghost">◂ BACK TO ARCHIVE</a>
+    <div class="hero__panel page-intro__panel frame">
+      <span class="hero__stamp">FILE 004 / N8N INDEX</span>
+      <h1>N8N Workflows</h1>
+      <p>Open-source automation, self-hosted control — every n8n build lives on this page.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     EDIT POINT: add a real n8n project by adding one object to the
+     N8N_WORKFLOWS array in the inline <script> below — the search
+     box, filter chips, list/grid views and modal all render
+     themselves from that data (see initWorkflowBrowser() in
+     script.js). Drop the matching .json file into /n8n/ and point
+     "file" at it.
+     ============================================================ -->
+<main>
+  <section class="platform">
+    <div class="wrap">
+      <div class="wf-controls frame">
+        <div class="wf-controls__top">
+          <input type="text" id="wfSearch" class="wf-search"
+                 placeholder="Search workflows… (e.g. AI Agent, RAG, Inventory)" autocomplete="off">
+          <div class="view-toggle" id="wfViewToggle" role="group" aria-label="View style">
+            <button type="button" class="view-toggle__btn is-active" data-view="list" aria-pressed="true">☰ List</button>
+            <button type="button" class="view-toggle__btn" data-view="grid" aria-pressed="false">▦ Grid</button>
+          </div>
+        </div>
+        <div class="filter-chips" id="wfChips"></div>
+      </div>
+
+      <div id="n8nGrid" class="wf-list"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer wrap">
+  <span>© 2026 AUTOMATA ARCHIVE — BUILT BY HAND, RUN BY MACHINE</span>
+  <span>SIGNAL STATUS: ONLINE</span>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  // EDIT POINT: each object here becomes one workflow. "stages" is
+  // the condensed trigger -> ... -> output chain shown as both the
+  // list-item thumbnail and the architecture chips in the modal.
+  // "tags" drives both free-text search and the quick-filter chips
+  // — reuse a name from COMMON_WORKFLOW_TAGS in script.js where it
+  // fits, so the shared chip row picks it up automatically.
+  //
+  // "image" (optional): path to a screenshot of the workflow canvas,
+  // shown at a fixed size at the top of the modal (any picture you
+  // drop in gets cropped to the same 16:9 box — see .modal__shot in
+  // styles.css). Leave it out and the modal shows a placeholder.
+  //
+  // SECURITY: before adding a workflow's real .json export here or
+  // to /n8n, open it and strip anything tied to you personally —
+  // webhook URLs, credential IDs, API keys, your server/domain,
+  // email addresses, sticky-note notes. "title"/"description"/"tags"
+  // also pass through a redaction filter automatically (see
+  // sanitizeText() in script.js) as a backup, but that only catches
+  // obvious IPs/emails/links — it is not a substitute for cleaning
+  // the file yourself. The list is capped at 10 per page — see
+  // PAGE_SIZE in script.js — so add as many workflows as you like.
+  const N8N_WORKFLOWS = [
+    {
+      title: 'Telegram AI Video Generator',
+      status: 'LIVE',
+      description: 'Chats with a user on Telegram to gather a video brief, then generates and delivers a text-to-video clip once the script is ready.',
+      stages: ['Telegram Trigger', 'AI Chat Agent', 'Script Ready?', 'Generate Video', 'Send to Telegram'],
+      tags: ['AI Agent', 'Chatbot Assistant', 'Content Generation'],
+      // image: 'n8n/screenshots/telegram-ai-video-generator.png',
+      file: 'n8n/telegram-ai-video-generator.json',
+      downloadName: 'Telegram-AI-Video-Generator.json'
+    },
+    {
+      title: 'Telegram Receipt Photo Processing',
+      status: 'LIVE',
+      description: 'Pulls a receipt photo sent on Telegram, reads it with Gemini vision, files it into the right dated Drive folder, and logs the details to a spreadsheet.',
+      stages: ['Telegram Trigger', 'Get Photo', 'Gemini Image Analysis', 'Drive Folder Routing', 'Upload to Drive', 'Log to Sheet'],
+      tags: ['Document Processing', 'Data Sync'],
+      file: 'n8n/telegram-receipt-photo-processing.json',
+      downloadName: 'Telegram-Receipt-Photo-Processing.json'
+    },
+    {
+      title: 'Multi-Label Gmail to Sheets & Drive',
+      status: 'LIVE',
+      description: 'Runs hourly to pull labeled Gmail messages, sorts their attachments into sender/label folders in Drive, and logs each one to a spreadsheet.',
+      stages: ['Hourly Trigger', 'Fetch Gmail + Labels', 'Resolve Label', 'Drive Folder Routing', 'Upload Attachments', 'Log to Sheet'],
+      tags: ['Email Automation', 'Document Processing', 'Data Sync'],
+      file: 'n8n/multi-label-gmail-to-sheets-drive-automation.json',
+      downloadName: 'Multi-Label-Gmail-to-Sheets-Drive-Automation.json'
+    },
+    {
+      title: 'AI Agent to Build Website',
+      status: 'LIVE',
+      description: 'Picks up a new project brief from Drive or a Telegram chat, has a Claude agent build the site using a Pinecone knowledge base, then pushes the files to GitHub and reports back on Telegram.',
+      stages: ['Drive/Telegram Trigger', 'AI Agent (Claude + Pinecone)', 'Build Site Files', 'Push to GitHub', 'Notify on Telegram'],
+      tags: ['AI Agent', 'RAG', 'Content Generation'],
+      file: 'n8n/ai-agent-to-build-website.json',
+      downloadName: 'AI-Agent-to-Build-Website.json'
+    },
+    {
+      title: 'Get Tailored Resume',
+      status: 'LIVE',
+      description: 'Takes a resume and job details from Telegram or Drive, has a Claude agent tailor the resume, and delivers the result as a new Google Doc.',
+      stages: ['Telegram/Drive Trigger', 'Extract Resume + Job Info', 'AI Agent (Claude)', 'Create Google Doc', 'Notify on Telegram'],
+      tags: ['AI Agent', 'Document Processing', 'RAG'],
+      file: 'n8n/get-tailored-resume.json',
+      downloadName: 'Get-Tailored-Resume.json'
+    },
+    {
+      title: 'API Integration Pipeline',
+      status: 'LIVE',
+      description: 'Pulls orders and customer records from two APIs in parallel, merges and aggregates them, then routes each order by subscription tier and region into a priority queue.',
+      stages: ['Manual Trigger', 'Fetch Orders + Customers', 'Merge & Aggregate', 'Route by Tier/Region', 'Priority Queue', 'Finalize Pipeline'],
+      tags: ['Data Sync', 'CRM Automation'],
+      file: 'n8n/api-integration-pipeline.json',
+      downloadName: 'API-Integration-Pipeline.json'
+    },
+    {
+      title: 'Generate Video for YT',
+      status: 'LIVE',
+      description: 'Takes a topic or script idea on a schedule or trigger, has an AI agent draft the script and scenes, renders a text-to-video clip, and uploads the finished video straight to a YouTube channel.',
+      stages: ['Trigger', 'AI Script Agent', 'Generate Video', 'Render/Assemble', 'Upload to YouTube'],
+      tags: ['AI Agent', 'Content Generation'],
+      // image: 'n8n/screenshots/generate-video-for-yt.png', // EDIT POINT: drop a screenshot here once you have one
+      file: 'n8n/generate-video-for-yt.json',
+      downloadName: 'Generate-Video-for-YT.json'
+    },
+    {
+      title: 'LinkedIn Post Automation',
+      status: 'LIVE',
+      description: 'Picks up a content idea from a schedule or spreadsheet row, has an AI agent write and format the post, then publishes it to LinkedIn and logs the result for tracking.',
+      stages: ['Schedule Trigger', 'Pull Content Idea', 'AI Writing Agent', 'Post to LinkedIn', 'Log Result'],
+      tags: ['AI Agent', 'Content Generation'],
+      // image: 'n8n/screenshots/linkedin-post-automation.png', // EDIT POINT: drop a screenshot here once you have one
+      file: 'n8n/linkedin-post-automation.json',
+      downloadName: 'LinkedIn-Post-Automation.json'
+    }
+  ];
+
+  initWorkflowBrowser({
+    containerSelector: '#n8nGrid',
+    searchSelector: '#wfSearch',
+    chipsSelector: '#wfChips',
+    viewToggleSelector: '#wfViewToggle',
+    data: N8N_WORKFLOWS
+  });
+</script>
+
+</body>
+</html>

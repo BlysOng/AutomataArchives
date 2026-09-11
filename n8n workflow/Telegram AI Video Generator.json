@@ -1,0 +1,353 @@
+{
+  "name": "Telegram AI Video Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "a4e9a752-a04d-47b6-8070-5801df58b682",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        112
+      ],
+      "webhookId": "9f717161-9714-4d8f-9088-be0b55d93cb8",
+      "credentials": {
+        "telegramApi": {
+          "id": "mnO5EqnzztbzR37R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a helpful video production assistant chatting with a user on Telegram. Your job is to gather the requirements for a short video (topic, style/visual look, tone, length, target audience, and key points). Ask concise clarifying questions until you have enough detail. Once you have enough, write a complete, ready-to-produce video script.\n\nAlways respond in the required structured format:\n- reply: your chat message to the user (a clarifying question, an acknowledgement, or a note that the script is ready and the video is being generated).\n- scriptReady: set true ONLY when you have gathered enough detail AND are providing a final script; otherwise false.\n- videoScript: when scriptReady is true, a single vivid descriptive prompt suitable for a text-to-video generator (scene, subject, action, camera, style, mood); otherwise an empty string."
+        }
+      },
+      "id": "13ddb1bf-063c-4987-8091-89d2e060152b",
+      "name": "AI Script Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "00514828-efb7-47c6-958c-a7d26ef61824",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        336
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "contextWindowLength": 20
+      },
+      "id": "f5ad5ab7-40a9-4ccc-aeb6-694318435d61",
+      "name": "Conversation Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"reply\": {\n      \"type\": \"string\"\n    },\n    \"scriptReady\": {\n      \"type\": \"boolean\"\n    },\n    \"videoScript\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"reply\",\n    \"scriptReady\",\n    \"videoScript\"\n  ]\n}"
+      },
+      "id": "9192bfae-752c-452c-8089-7d78ab5195dc",
+      "name": "Script Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "script-ready",
+              "leftValue": "={{ $json.output.scriptReady }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "510a0ab5-8313-41f5-9704-0e6799879a9c",
+      "name": "Script Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('AI Script Agent').item.json.output.reply }}",
+        "additionalFields": {}
+      },
+      "id": "942b0c8d-53b6-48dc-8554-9b476cfbd77f",
+      "name": "Notify Generating",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        912,
+        -96
+      ],
+      "webhookId": "20c2ac54-dc16-42d8-b9b8-dea047e28f8d",
+      "credentials": {
+        "telegramApi": {
+          "id": "mnO5EqnzztbzR37R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "id": "868079fd-0a4d-40ae-8e85-278067b12186",
+      "name": "Send Video",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1600,
+        -96
+      ],
+      "webhookId": "a7ddf50d-23af-45d0-95d4-bfa9c74ff6aa",
+      "credentials": {
+        "telegramApi": {
+          "id": "mnO5EqnzztbzR37R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('AI Script Agent').item.json.output.reply }}",
+        "additionalFields": {}
+      },
+      "id": "fe0ead2b-d2f3-4004-8c1e-47804df3248d",
+      "name": "Send Chat Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        912,
+        208
+      ],
+      "webhookId": "35bf1046-61b0-49d9-afcd-aed177802625",
+      "credentials": {
+        "telegramApi": {
+          "id": "mnO5EqnzztbzR37R",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "modelId": {
+          "__rl": true,
+          "value": "happyhorse-1.0-t2v",
+          "mode": "list",
+          "cachedResultName": "happyhorse-1.0-t2v"
+        },
+        "prompt": "={{ $('AI Script Agent').item.json.output.videoScript }}",
+        "videoOptions": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.alibabaCloud",
+      "typeVersion": 1.1,
+      "position": [
+        1184,
+        -96
+      ],
+      "id": "04e2ce1d-9e81-4998-8d13-6a93f0da4902",
+      "name": "Generate video from text prompt",
+      "credentials": {
+        "alibabaCloudApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Script Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Script Agent": {
+      "main": [
+        [
+          {
+            "node": "Script Ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Script Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Script Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Script Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Script Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Script Ready?": {
+      "main": [
+        [
+          {
+            "node": "Notify Generating",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Chat Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Generating": {
+      "main": [
+        [
+          {
+            "node": "Generate video from text prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate video from text prompt": {
+      "main": [
+        [
+          {
+            "node": "Send Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "54fa82d8-330a-4a8d-8c29-e0c749d05e7e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f0899457e2529e40ff8c7b9d4f93f2daefcea9238fa301f5250d214ac68c69ab"
+  },
+  "nodeGroups": [
+    {
+      "id": "b02cf842-a1c2-4605-9769-073e2160a2fc",
+      "name": "Video Production",
+      "nodeIds": [
+        "942b0c8d-53b6-48dc-8554-9b476cfbd77f",
+        "868079fd-0a4d-40ae-8e85-278067b12186",
+        "04e2ce1d-9e81-4998-8d13-6a93f0da4902"
+      ],
+      "description": "Generates the video from the finished script with Google Gemini (Veo) and sends it back on Telegram."
+    }
+  ],
+  "id": "Obk0lniJkAkXps6d",
+  "tags": []
+}
