@@ -16,7 +16,7 @@
           "value": "1ow6Itz9rJnzLJpHjtBF5kv0NTMOEh0uz",
           "mode": "list",
           "cachedResultName": "DOCS HERES WEBSITE",
-          "cachedResultUrl": "https://drive.google.com/drive/folders/1ow6Itz9rJnzLJpHjtBF5kv0NTMOEh0uz"
+          "cachedResultUrl": ""
         },
         "event": "fileCreated",
         "options": {}
@@ -27,11 +27,11 @@
         2368,
         -1616
       ],
-      "id": "6122643d-e977-4642-9409-d48907c81efd",
+      "id": "",
       "name": "Google Drive Trigger",
       "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "jvIzZULIeYz4CHqR",
+        "": {
+          "id": "",
           "name": "Google Drive account"
         }
       }
@@ -42,10 +42,10 @@
         "filter": {
           "folderId": {
             "__rl": true,
-            "value": "1ow6Itz9rJnzLJpHjtBF5kv0NTMOEh0uz",
+            "value": "",
             "mode": "list",
-            "cachedResultName": "DOCS HERES WEBSITE",
-            "cachedResultUrl": "https://drive.google.com/drive/folders/1ow6Itz9rJnzLJpHjtBF5kv0NTMOEh0uz"
+            "cachedResultName": "",
+            "cachedResultUrl": ""
           }
         },
         "options": {}
@@ -59,8 +59,8 @@
       "id": "dc05da37-f84d-44af-b089-c8640957f189",
       "name": "Search files and folders",
       "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "jvIzZULIeYz4CHqR",
+        "": {
+          "id": "",
           "name": "Google Drive account"
         }
       }
@@ -84,8 +84,8 @@
       "id": "5aa0adef-b429-47f6-b313-81c2a1b460cc",
       "name": "Download file",
       "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "jvIzZULIeYz4CHqR",
+        "": {
+          "id": "",
           "name": "Google Drive account"
         }
       }
@@ -120,10 +120,10 @@
       ],
       "id": "a1fb3e6a-cf31-4e99-972d-b79bf43e18c4",
       "name": "Create a file",
-      "webhookId": "327fe40c-f5c2-412a-a3e7-f792a72af318",
+      "webhookId": "",
       "credentials": {
-        "githubOAuth2Api": {
-          "id": "VRiBrrvC0dRia06F",
+        "": {
+          "id": "",
           "name": "GitHub account"
         }
       }
@@ -227,12 +227,12 @@
         1712,
         -1200
       ],
-      "id": "a553a580-2d74-4386-afb2-cdf7a85bfd98",
+      "id": "",
       "name": "Send a text message",
-      "webhookId": "eb07f002-0e00-4bf9-bc76-b91ed73105e8",
+      "webhookId": "",
       "credentials": {
         "telegramApi": {
-          "id": "M1XWF9q4QH3yEOAU",
+          "id": "",
           "name": "Telegram account"
         }
       }
