@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zapier Integrations — Automata Archive</title>
+<meta name="description" content="Zapier automation integrations from the Automata Archive.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============================================================
+     NAVIGATION — identical block on every page; script.js marks
+     whichever link matches the current page automatically.
+     ============================================================ -->
+<nav class="nav">
+  <div class="nav__wrap">
+    <a href="index.html#top" class="nav__brand">AUTOMATA <span>ARCHIVE</span></a>
+    <ul class="nav__links">
+      <li><a href="n8n.html">n8n</a></li>
+      <li><a href="zapier.html">zapier</a></li>
+      <li><a href="make.html">make</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="page-intro">
+  <div class="wrap">
+    <a href="automation.html" class="btn btn--ghost">◂ BACK TO ARCHIVE</a>
+    <div class="hero__panel page-intro__panel frame">
+      <span class="hero__stamp">FILE 005 / ZAPIER INDEX</span>
+      <h1>Zapier Integrations</h1>
+      <p>Fast, no-code connections across everyday tools — every Zapier build lives on this page.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     EDIT POINT: add a real Zapier project by adding one object to
+     the ZAPIER_WORKFLOWS array in the inline <script> below — the
+     search box, filter chips, list/grid views, modal and pagination
+     all render themselves from that data (see initWorkflowBrowser()
+     in script.js), exactly like the n8n page. Drop the matching
+     .json export into /zapier/ and point "file" at it.
+     ============================================================ -->
+<main>
+  <section class="platform">
+    <div class="wrap">
+      <div class="wf-controls frame">
+        <div class="wf-controls__top">
+          <input type="text" id="wfSearch" class="wf-search"
+                 placeholder="Search integrations… (e.g. Lead Generation, CRM, Email)" autocomplete="off">
+          <div class="view-toggle" id="wfViewToggle" role="group" aria-label="View style">
+            <button type="button" class="view-toggle__btn is-active" data-view="list" aria-pressed="true">☰ List</button>
+            <button type="button" class="view-toggle__btn" data-view="grid" aria-pressed="false">▦ Grid</button>
+          </div>
+        </div>
+        <div class="filter-chips" id="wfChips"></div>
+      </div>
+
+      <div id="zapierGrid" class="wf-list"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer wrap">
+  <span>© 2026 AUTOMATA ARCHIVE — BUILT BY HAND, RUN BY MACHINE</span>
+  <span>SIGNAL STATUS: ONLINE</span>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  // EDIT POINT: same shape and same rules as N8N_WORKFLOWS on the
+  // n8n page — see the long comment there for what each field does,
+  // the optional "image" screenshot field, and the security note on
+  // scrubbing real Zap exports before adding them here. Empty for
+  // now since no Zaps are on file yet; the page shows "No workflows
+  // here yet" until this array has entries.
+  const ZAPIER_WORKFLOWS = [
+    // {
+    //   title: 'Example Zap Title',
+    //   status: 'LIVE',
+    //   description: 'One or two sentences on what it does end to end.',
+    //   stages: ['Trigger App', 'Filter/Format', 'Action App'],
+    //   tags: ['Lead Generation'],
+    //   image: 'zapier/screenshots/example-zap.png',
+    //   file: 'zapier/example-zap.json',
+    //   downloadName: 'Example-Zap.json'
+    // }
+  ];
+
+  initWorkflowBrowser({
+    containerSelector: '#zapierGrid',
+    searchSelector: '#wfSearch',
+    chipsSelector: '#wfChips',
+    viewToggleSelector: '#wfViewToggle',
+    data: ZAPIER_WORKFLOWS
+  });
+</script>
+
+</body>
+</html>
