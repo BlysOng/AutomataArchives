@@ -1,0 +1,884 @@
+/* ================================================================
+   1. TOKENS — single source of truth for color / type / rhythm
+   ================================================================ */
+:root{
+  /* -- retro / vintage base palette -- */
+  --paper:        #E7DEC5;   /* aged paper background */
+  --paper-deep:   #D8C89C;   /* deeper tan, panels/cards */
+  --paper-line:   #C6B384;   /* hairline rules on paper */
+  --ink:          #241D14;   /* near-black warm ink, body text */
+  --ink-soft:     #4A4030;   /* secondary ink, muted copy */
+  --rust:         #9C4221;   /* burnt rust — primary retro accent */
+  --brass:        #A9822C;   /* aged brass — borders, corner frames */
+  --olive:        #5F6B3E;   /* muted olive — tertiary accent */
+
+  /* -- cyberpunk glitch palette (used sparingly + temporarily) -- */
+  --cyber-black:  #0A0710;
+  --cyber-cyan:   #00F0FF;
+  --cyber-magenta:#FF2E92;
+  --cyber-green:  #39FF88;   /* shard-glitch accent */
+  --cyber-yellow: #FFD400;   /* shard-glitch accent */
+  --cyber-violet: #7B2FFF;   /* shard-glitch accent */
+
+  /* darker/readable variants used ONLY when text sitting on the
+     light paper background needs to glitch — bright neon would be
+     low-contrast on cream, so these stay dark enough to stay legible */
+  --glitch-text-1: #A81858;  /* deep magenta */
+  --glitch-text-2: #0B6E76;  /* deep teal */
+  --glitch-text-3: #5B279C;  /* deep violet */
+  --glitch-text-4: #7A1610;  /* deep red */
+
+  /* -- type -- */
+  --font-display: 'Special Elite', 'Courier New', monospace;
+  --font-mono:    'Space Mono', 'Courier New', monospace;
+
+  /* -- layout rhythm -- */
+  --nav-height:   64px;
+  --gutter:       clamp(1.25rem, 4vw, 3rem);
+  --radius:       2px; /* vintage documents are square-cornered, not rounded */
+}
+
+/* ================================================================
+   2. RESET / BASE
+   ================================================================ */
+*, *::before, *::after{ box-sizing: border-box; }
+html{ scroll-behavior: smooth; }
+body{
+  margin: 0;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow-x: hidden;
+}
+h1, h2, h3{
+  font-family: var(--font-display);
+  font-weight: 400;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+p{ margin: 0 0 1em; max-width: 62ch; }
+a{ color: inherit; }
+img, svg{ display:block; max-width:100%; }
+::selection{ background: var(--rust); color: var(--paper); }
+
+/* focus visibility (accessibility floor) */
+a:focus-visible, button:focus-visible{
+  outline: 2px solid var(--cyber-cyan);
+  outline-offset: 3px;
+}
+
+/* -- ambient paper grain (very low opacity, whole page) -- */
+body::before{
+  content:"";
+  position: fixed; inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* -- ambient CRT scanlines, whole page, barely-there -- */
+body::after{
+  content:"";
+  position: fixed; inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: repeating-linear-gradient(
+    to bottom, var(--ink) 0px, var(--ink) 1px, transparent 2px, transparent 4px
+  );
+}
+
+.wrap{
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  position: relative;
+  z-index: 3;
+}
+
+/* ================================================================
+   3. REUSABLE "FRAME" COMPONENT (corner brackets)
+   Corners are injected by JS (see initFrames()) so this markup
+   never has to be repeated by hand — add class="frame" to any
+   panel and it gets brass viewfinder corners automatically.
+   ================================================================ */
+.frame{ position: relative; }
+.corner{
+  position: absolute;
+  width: 16px; height: 16px;
+  border: 0 solid var(--brass);
+  pointer-events: none;
+}
+.corner--tl{ top: -1px;  left: -1px;  border-top-width: 2px; border-left-width: 2px; }
+.corner--tr{ top: -1px;  right: -1px; border-top-width: 2px; border-right-width: 2px; }
+.corner--bl{ bottom: -1px; left: -1px; border-bottom-width: 2px; border-left-width: 2px; }
+.corner--br{ bottom: -1px; right: -1px; border-bottom-width: 2px; border-right-width: 2px; }
+
+/* ================================================================
+   3b. REUSABLE "SHARD GLITCH" COMPONENT
+   Faceted, chromatic-split glitch — angular colour shards, in the
+   spirit of the "crossing dimensions" glitch look, rebuilt here as
+   original CSS shapes (no characters/artwork reproduced).
+
+   Two uses of the same markup:
+   - AMBIENT: one standalone element, fixed to the viewport (NOT
+     confined to any single box), repositioned/resized/reshaped by
+     JS on every cycle. It can land anywhere on screen — including
+     over text, which is what lets text change colour underneath it
+     (see .text-glitch-hit below and applyTextGlitchHits() in
+     <script>).
+   - CLICK: the same markup lives inside .btn (contained there,
+     since it's reacting to that specific click) — see
+     triggerButtonGlitch() in <script>.
+
+   Shard SHAPE and COLOUR are both set inline by JS on every single
+   activation (randomShardClipPath() + restyleGlitchLayer()) so no
+   two glitches ever look identical — never just a plain square.
+   ================================================================ */
+.glitch-layer{
+  position: absolute;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0;
+}
+.glitch-layer--ambient{
+  /* position:fixed anchors this to the VIEWPORT, not the page, and
+     it's appended straight onto <body> with no transformed/filtered
+     ancestor in between — so once it appears it stays locked to that
+     spot on the user's screen for its full duration no matter how
+     much they scroll. will-change hints the browser to keep it on
+     its own compositor layer, which avoids the lag/jump some mobile
+     browsers show on fixed elements during a scroll gesture. */
+  position: fixed;
+  z-index: 9999;
+  will-change: transform, opacity;
+}
+.glitch-layer.is-active{
+  opacity: 1;
+  animation: shardJitter 0.13s steps(2, end) infinite;
+}
+.glitch-layer__shard{
+  position: absolute; inset: 0;
+  mix-blend-mode: screen;
+  /* clip-path + background + transform are all set inline by JS */
+}
+.glitch-layer__shard--diff{ mix-blend-mode: difference; opacity: 0.75; }
+@keyframes shardJitter{
+  0%   { transform: translate(0,0);      filter: hue-rotate(0deg); }
+  50%  { transform: translate(-2px,1px); filter: hue-rotate(30deg); }
+  100% { transform: translate(2px,-1px); filter: hue-rotate(-25deg); }
+}
+@media (prefers-reduced-motion: reduce){
+  .glitch-layer.is-active{ animation: none; }
+}
+
+/* ================================================================
+   4. NAVIGATION
+   ================================================================ */
+.nav{
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 500;
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  background: rgba(231, 222, 197, 0.92);
+  backdrop-filter: blur(4px);
+  border-bottom: 2px solid var(--brass);
+}
+.nav__wrap{
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.nav__brand{
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+}
+.nav__brand span{ color: var(--rust); }
+.nav__links{
+  list-style: none;
+  display: flex;
+  gap: clamp(0.9rem, 2vw, 1.75rem);
+  margin: 0; padding: 0;
+}
+.nav__links a{
+  text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+  padding: 0.3em 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.nav__links a:hover,
+.nav__links a:focus-visible{
+  color: var(--rust);
+  border-color: var(--rust);
+}
+/* auto-applied by markCurrentNavLink() in script.js on every page */
+.nav__links a.is-current{
+  color: var(--rust);
+  border-color: var(--rust);
+}
+
+/* ================================================================
+   5. HERO
+   ================================================================ */
+.hero{
+  padding: calc(var(--nav-height) + 4.5rem) 0 3.5rem;
+}
+.hero__panel{
+  padding: clamp(1.75rem, 5vw, 3.25rem);
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-line);
+}
+.hero__stamp{
+  display: inline-block;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  border: 1px solid var(--ink-soft);
+  padding: 0.3em 0.6em;
+  transform: rotate(-1.2deg);
+  margin-bottom: 1.75rem;
+}
+.hero h1{
+  font-size: clamp(2rem, 5.2vw, 3.4rem);
+  line-height: 1.15;
+  color: var(--ink);
+}
+.hero h1 .line{ display: block; }
+
+/* -- the requested emphasis word: retro rust by default,
+      flickers into cyberpunk neon on a short recurring cycle -- */
+.hero__future{
+  color: var(--rust);
+  animation: futureFlicker 3.6s infinite;
+}
+@keyframes futureFlicker{
+  0%, 90%, 100% { color: var(--rust); text-shadow: none; }
+  91% { color: var(--cyber-cyan); text-shadow: 2px 0 var(--cyber-magenta), -2px 0 var(--cyber-cyan); }
+  93% { color: var(--rust);       text-shadow: -2px 0 var(--cyber-magenta), 2px 0 var(--cyber-cyan); }
+  95% { color: var(--cyber-cyan); text-shadow: 2px 0 var(--cyber-magenta), -2px 0 var(--cyber-cyan); }
+  97%,100% { color: var(--rust); text-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .hero__future{ animation: none; color: var(--rust); }
+}
+
+.hero__lede{
+  margin-top: 1.5rem;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  max-width: 60ch;
+}
+.hero__body{
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.hero__body strong{
+  color: var(--rust);
+  font-weight: 700;
+}
+
+.btn{
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 1.75rem;
+  padding: 0.85em 1.4em;
+  background: var(--ink);
+  color: var(--paper);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--ink);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, text-shadow 0.15s ease;
+}
+.btn:hover, .btn:focus-visible{
+  background: var(--rust);
+  border-color: var(--rust);
+  text-shadow: 1px 0 var(--cyber-magenta), -1px 0 var(--cyber-cyan);
+}
+/* secondary/quiet variant — used for the "back to archive" link on
+   platform pages so it doesn't compete with the primary CTA */
+.btn--ghost{
+  background: transparent;
+  color: var(--ink);
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+.btn--ghost:hover, .btn--ghost:focus-visible{
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+/* ================================================================
+   6. STAT / READOUT TILES
+   ================================================================ */
+.stats{
+  padding: 0.5rem 0 3.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--paper-line);
+  border: 1px solid var(--paper-line);
+}
+.stat{
+  position: relative;
+  background: var(--paper);
+  padding: 1.75rem 1.5rem;
+  text-align: left;
+}
+.stat__value{
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  color: var(--rust);
+}
+.stat__label{
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+}
+@media (max-width: 720px){
+  .stats{ grid-template-columns: 1fr; }
+}
+
+/* ================================================================
+   7. SIGNAL TICKER (marquee)
+   ================================================================ */
+.ticker{
+  border-top: 2px solid var(--brass);
+  border-bottom: 2px solid var(--brass);
+  background: var(--ink);
+  color: var(--paper-deep);
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0.6rem 0;
+}
+.ticker__track{
+  display: inline-block;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  padding-left: 100%;
+  animation: tickerScroll 26s linear infinite;
+}
+@keyframes tickerScroll{
+  from{ transform: translateX(0); }
+  to{ transform: translateX(-100%); }
+}
+@media (prefers-reduced-motion: reduce){
+  .ticker__track{ animation: none; padding-left: 1rem; }
+}
+
+/* ================================================================
+   8. PLATFORM SECTIONS (n8n / zapier / make)
+   ================================================================ */
+.platform{
+  padding: 4rem 0;
+  scroll-margin-top: calc(var(--nav-height) + 1rem);
+  border-bottom: 1px solid var(--paper-line);
+}
+.platform__head{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin-bottom: 1.75rem;
+}
+.platform__head h2{
+  font-size: clamp(1.3rem, 2.6vw, 1.8rem);
+  color: var(--ink);
+}
+/* clicking the platform NAME (e.g. "N8N Workflows") goes to that
+   platform's own page — see automation.html markup */
+.platform__head h2 a{
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.platform__head h2 a:hover,
+.platform__head h2 a:focus-visible{
+  color: var(--rust);
+  border-color: var(--rust);
+}
+.platform__tag{
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.platform__grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+/* .card doubles as a plain box (on the dedicated platform pages) and
+   as a clickable link (the homepage preview tiles link out to those
+   pages) — text-decoration/cursor only matter when it's an <a>. */
+.card{
+  padding: 1.5rem;
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-line);
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+a.card:hover, a.card:focus-visible{
+  border-color: var(--rust);
+}
+
+/* -- standalone platform pages (n8n.html / zapier.html / make.html) --
+   reuse .hero__panel for the bordered background + corner frame,
+   this just sizes the heading for a single-line page title instead
+   of the two-line homepage headline. */
+.page-intro{
+  padding: calc(var(--nav-height) + 2.5rem) 0 1rem;
+}
+.page-intro__panel h1{
+  font-size: clamp(1.6rem, 4.2vw, 2.4rem);
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+.page-intro__panel p{
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+.card__eyebrow{
+  font-size: 0.7rem;
+  color: var(--olive);
+  letter-spacing: 0.04em;
+}
+.card__title{
+  margin-top: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+.card__desc{
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+/* -- architecture chip chain: a condensed "blueprint" summary of a
+   workflow's stages (trigger -> ... -> output), built from a plain
+   JS array by buildWorkflowCard() so adding a new project later is
+   just adding data, never hand-written markup. -- */
+.arch{
+  margin-top: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0;
+}
+.arch__node{
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  padding: 0.25em 0.5em;
+  white-space: nowrap;
+}
+.arch__node:first-child{ border-color: var(--olive); color: var(--olive); }
+.arch__node:last-child{ border-color: var(--rust); color: var(--rust); }
+.arch__arrow{
+  color: var(--brass);
+  font-size: 0.7rem;
+  padding: 0 0.25em;
+}
+/* download buttons sit inside a card, so they need to be smaller
+   than the page-level CTA/back-link that .btn is normally used for */
+.card .btn{
+  margin: 1rem 0 0;
+  align-self: flex-start;
+  padding: 0.55em 0.9em;
+  font-size: 0.72rem;
+}
+
+/* ================================================================
+   9. FOOTER
+   ================================================================ */
+.footer{
+  padding: 2.5rem 0 3rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* ================================================================
+   12. WORKFLOW BROWSER — search box, quick-filter chips, list/grid
+   view toggle, the horizontal list + thumbnail, and the details
+   modal. All markup here is built by initWorkflowBrowser() in
+   <script>, from a plain per-page data array.
+   ================================================================ */
+button.card{ font: inherit; text-align: left; cursor: pointer; }
+
+.wf-controls{
+  padding: 1.25rem clamp(1.25rem, 4vw, 2rem);
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-line);
+  margin-bottom: 1.5rem;
+}
+.wf-controls__top{
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+.wf-search{
+  flex: 1 1 240px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 0.6em 0.8em;
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  color: var(--ink);
+}
+.wf-search:focus-visible{
+  outline: 2px solid var(--cyber-cyan);
+  outline-offset: 2px;
+}
+.view-toggle{
+  display: flex;
+  border: 1px solid var(--ink);
+  flex: none;
+}
+.view-toggle__btn{
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  padding: 0.55em 0.9em;
+  background: transparent;
+  color: var(--ink);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.view-toggle__btn + .view-toggle__btn{ border-left: 1px solid var(--ink); }
+.view-toggle__btn.is-active{ background: var(--ink); color: var(--paper); }
+
+.filter-chips{
+  margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.filter-chip{
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  padding: 0.35em 0.7em;
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.filter-chip:hover, .filter-chip:focus-visible{ border-color: var(--rust); color: var(--rust); }
+.filter-chip.is-active{ border-color: var(--rust); color: var(--rust); background: var(--paper); }
+
+/* -- thumbnail: a mini version of the .arch chip chain, drawn as a
+   tiny zigzag node diagram by buildThumbnailSVG() — no image assets */
+.wf-thumb{
+  flex: none;
+  width: 84px; height: 64px;
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  display: flex; align-items: center; justify-content: center;
+}
+.wf-thumb svg{ width: 100%; height: 100%; }
+
+/* -- horizontal list (default view) -- */
+.wf-list{
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--paper-line);
+  border: 1px solid var(--paper-line);
+}
+.wf-list__item{
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background: var(--paper);
+  border: none;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.wf-list__item:hover, .wf-list__item:focus-visible{ background: var(--paper-deep); }
+.wf-list__body{ flex: 1 1 auto; min-width: 0; }
+.wf-list__title{
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--ink);
+}
+.wf-list__desc{
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wf-list__tags{
+  margin-top: 0.45rem;
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.wf-tag{
+  font-size: 0.65rem;
+  letter-spacing: 0.02em;
+  color: var(--olive);
+  border: 1px solid var(--olive);
+  padding: 0.15em 0.45em;
+}
+.wf-empty{
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+}
+@media (max-width: 560px){
+  .wf-list__desc{ white-space: normal; }
+}
+
+/* -- details modal — main write-up on the left, download on the
+   right, per the brief -- */
+.modal-overlay{
+  position: fixed; inset: 0;
+  background: rgba(10, 7, 16, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 3000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.modal-overlay.is-open{ opacity: 1; pointer-events: auto; }
+.modal{
+  position: relative;
+  width: min(860px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--brass);
+  /* Scrolling still works (long descriptions won't get cut off) —
+     the visible scrollbar/scroll-buttons are just hidden so the
+     panel reads as one clean sheet instead of a scroll box. */
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* old Edge/IE */
+}
+.modal::-webkit-scrollbar{ display: none; } /* Chrome/Safari/new Edge */
+.modal__close{
+  position: absolute;
+  top: 0.75rem; right: 0.75rem;
+  width: 28px; height: 28px;
+  background: transparent;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal__close:hover{ background: var(--ink); color: var(--paper); }
+
+/* -- screenshot slot: a fixed-height viewport across the top of the
+   modal. Every screenshot is shown at its own natural aspect ratio,
+   scaled to fill this exact height — so every workflow's image ends
+   up the SAME SIZE on screen (same height, same box), but wide
+   screenshots (most workflow canvases) overflow sideways instead of
+   getting cropped. Drag left/right (mouse or touch) to pan across
+   the full image — see initShotDrag() in script.js. -- */
+.modal__shot{
+  position: relative;
+  width: 100%;
+  height: 320px;
+  background: var(--paper-deep);
+  border-bottom: 1px solid var(--paper-line);
+  overflow-x: auto;
+  overflow-y: hidden;
+  cursor: grab;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+.modal__shot::-webkit-scrollbar{ display: none; }
+.modal__shot.is-dragging{ cursor: grabbing; scroll-behavior: auto; }
+@media (max-width: 620px){
+  .modal__shot{ height: 220px; }
+}
+.modal__shot-img{
+  display: none;
+  height: 100%;
+  width: auto;
+  max-width: none;   /* natural aspect ratio, not squeezed to the box width */
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none; /* the wrapper (.modal__shot) owns the drag, not the <img> itself */
+}
+/* small "drag to see more" hint — centered on the viewport (not the
+   image), low-opacity so it never gets in the way of reading the
+   screenshot, and only shown once JS confirms the image actually
+   overflows the box (see .modal__shot.is-draggable in script.js) */
+.modal__shot-draghint{
+  display: none;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px; height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(10, 7, 16, 0.55);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.modal__shot.is-draggable .modal__shot-draghint{ display: flex; }
+.modal__shot-draghint svg{ width: 18px; height: 18px; }
+.modal__shot-placeholder{
+  display: flex;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.modal__body{ display: flex; flex-wrap: wrap; }
+.modal__main{ flex: 1 1 340px; padding: 2.25rem; }
+.modal__side{
+  flex: 0 0 220px;
+  padding: 2.25rem 1.75rem;
+  background: var(--paper-deep);
+  border-left: 1px solid var(--paper-line);
+  display: flex;
+  flex-direction: column;
+}
+@media (max-width: 620px){
+  .modal__side{ border-left: none; border-top: 1px solid var(--paper-line); flex-basis: 100%; }
+}
+.modal__eyebrow{ font-size: 0.72rem; color: var(--olive); letter-spacing: 0.04em; }
+.modal__title{ margin-top: 0.5rem; font-family: var(--font-display); font-size: 1.4rem; color: var(--ink); }
+.modal__desc{ margin-top: 1rem; font-size: 0.9rem; color: var(--ink-soft); }
+.modal__arch{ margin-top: 1.5rem; }
+.modal__tags{ margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.modal__side-label{ font-size: 0.7rem; color: var(--ink-soft); letter-spacing: 0.05em; margin-bottom: 0.6rem; }
+.modal__side .btn{ margin-top: auto; width: 100%; justify-content: center; }
+.modal__side .btn.is-disabled{
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* -- pager: shown under the list/grid only once a page has 11+
+   workflows (see PAGE_SIZE in script.js). -- */
+.wf-pager{
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+.wf-pager:empty{ margin-top: 0; }
+.wf-pager__btn{
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  padding: 0.5em 0.8em;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.wf-pager__btn:hover:not(:disabled){ background: var(--ink); color: var(--paper); }
+.wf-pager__btn:disabled{ opacity: 0.35; cursor: not-allowed; }
+.wf-pager__nums{ display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.wf-pager__page{
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  width: 2em; height: 2em;
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.wf-pager__page:hover{ border-color: var(--rust); color: var(--rust); }
+.wf-pager__page.is-active{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.wf-pager__info{
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  margin-left: auto;
+}
+
+/* ================================================================
+   11. TEXT GLITCH HIT — dynamic state, toggled by JS whenever the
+   ambient glitch (or a button's own click-glitch) overlaps a piece
+   of text. Deliberately placed LAST in the stylesheet: same
+   specificity (one class) as every other colour rule above, so it
+   wins by source order alone with no !important needed.
+   Colour + which text it hits are both picked by JS — see
+   applyTextGlitchHits() / triggerButtonGlitch() in <script>.
+   ================================================================ */
+.text-glitch-hit{
+  color: var(--text-glitch-color, var(--rust));
+  text-shadow: 1.5px 0 var(--cyber-magenta), -1.5px 0 var(--cyber-cyan);
+  animation: shardJitter 0.13s steps(2, end) infinite;
+}
+@media (prefers-reduced-motion: reduce){
+  .text-glitch-hit{ animation: none; }
+}
