@@ -140,6 +140,24 @@
   downloadName: 'WhatsApp-AI-Dental-Clinic-Chatbot.json'
     },
     {
+  title: 'Typeform NextCloud Spreadsheet Automation',
+  status: 'LIVE',
+  description: 'Automatically processes Typeform submissions by downloading an existing Excel spreadsheet from NextCloud, extracting and merging data with new form responses, converting the updated data into a spreadsheet file, and uploading the processed file back to NextCloud.',
+  stages: [
+    'Typeform Trigger',
+    'NextCloud Download',
+    'Spreadsheet File',
+    'Merge Data',
+    'Spreadsheet File Export',
+    'NextCloud Upload',
+    'Error Handler'
+  ],
+  tags: ['Workflow Automation', 'Typeform Integration', 'NextCloud', 'Spreadsheet Automation', 'Data Processing'],
+  image: 'n8n workflow/screenshots/TypeForm into Spreadsheets.png',
+  file: 'n8n/typeform-nextcloud-spreadsheet-automation.json',
+  downloadName: 'Typeform-NextCloud-Spreadsheet-Automation.json'
+},
+    {
       title: 'Telegram Receipt Photo Processing',
       status: 'LIVE',
       description: 'Pulls a receipt photo sent on Telegram, reads it with Gemini vision, files it into the right dated Drive folder, and logs the details to a spreadsheet.',
